@@ -140,3 +140,116 @@ fn App() -> Element {
 }
 ```
 
+# 事件
+
+事件处理类似于常规属性，通过以`on`开头，接收一个闭包函数。
+
+# 状态
+
+## use_hook
+
+使用纯Rust函数来存储和获取状态，无需其它结构。在组件调用时，会返回存储值`.clone()`。
+
+```rust
+fn DogView() -> Element {
+    let img_src = use_hook(|| "https://images.dog.ceo/breeds/pitbull/dog-3981540_1280.jpg");
+
+    // ..
+
+    rsx! {
+        div { id: "dogview",
+            img { src: "{img_src}" }
+        }
+        // ..
+    }
+}
+```
+
+## use_signal
+
+Signal是将原始的Rust值进行包装，会对其进行读写跟踪。
+
+当Signal的值发生改变时，组件会进行重新渲染。
+
+```rust
+let mut img_src = use_signal(|| "https://images.dog.ceo/breeds/pitbull/dog-3981540_1280.jpg");
+let save = move |evt| {
+    info!("save click");
+    img_src.set("https://images.dog.ceo/breeds/terrier-russell/IMG_7714.jpg");
+};
+```
+
+## Context
+
+当需要在整个App中管理状态，可以使用`Context`和`GlobalSignal`。
+
+Context API可以在不同组件之间传递数据，而不通过额外的属性参数。
+
+在创建数据的组件中，调用`use_context_provider()`将可以Clone的结构体作为数据提供者。在需要数据的组件中，调用`use_context()`获取数据。
+
+```rust
+// Create a new wrapper type
+#[derive(Clone)]
+struct TitleState(String);
+
+fn App() -> Element {
+    // Provide that type as a Context
+    use_context_provider(|| TitleState("HotDog".to_string()));
+    rsx! {
+        Title {}
+    }
+}
+
+fn Title() -> Element {
+    // Consume that type as a Context
+    let title = use_context::<TitleState>();
+    rsx! {
+        h1 { "{title.0}" }
+    }
+}
+```
+
+可以将Signal和Context结合，提供可以响应式的状态。`consume_context`可以修改状态。
+
+```rust
+#[derive(Clone, Copy)]
+struct MusicPlayer {
+    song: Signal<String>
+}
+
+fn use_music_player_provider() {
+    let song = use_signal(|| "Drift Away".to_string());
+    use_context_provider(|| MusicPlayer { song });
+}
+
+fn Player() -> Element {
+    rsx! {
+        button {
+            onclick: move |_| consume_context::<MusicPlayer>().song.set("Vienna"),
+            "Shuffle"
+        }
+    }
+}
+```
+
+## GlobalSignal
+
+GlobalSignal是一个简单的全局值，是Context和Signal的结合，无需额外的结构定义和配置。
+
+```rust
+// 定义在某个代码中
+static SONG: GlobalSignal<String> = Signal::global(|| "Drift Away".to_string());
+// 在组件中使用
+fn Player() -> Element {
+    rsx! {
+        h3 { "Now playing {SONG}" }
+        button {
+            onclick: move |_| *SONG.write() = "Vienna".to_string(),
+            "Shuffle"
+        }
+    }
+}
+```
+
+# 接口调用
+

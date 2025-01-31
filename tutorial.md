@@ -253,3 +253,40 @@ fn Player() -> Element {
 
 # 接口调用
 
+添加serde和reqwest依赖：
+
+```sh
+cargo add reqwest --features json
+cargo add serde --features derive
+```
+
+使用async来直接调用reqwest获取数据。
+
+```rust
+let save = move |_| async move {
+    let response: DogApi = reqwest::get("https://dog.ceo/api/breeds/image/random")
+        .await
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    img_src.set(response.message);
+};
+```
+
+Dioxus在异步闭包中自动调用`dioxus::spawn`。也可以在闭包中，直接使用`dioxus::spawn`，这样不用声明异步闭包。
+
+```rust
+rsx! {
+    button {
+        onclick: move |_| {
+            dioxus::spawn(async move {
+                // do some async work...
+            });
+        }
+    }
+}
+```
+
+直接使用async会在某些情况下出现竞态，更推荐使用`use_resource`来管理异步状态。

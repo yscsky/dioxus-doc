@@ -316,3 +316,29 @@ fn DogView() -> Element {
 }
 ```
 
+# 后端
+
+Dioxus是一个全栈框架，可以在构建前端的同时，无缝构建后端，提供了一系列工具Server Function，Server Futures，Server State集成到应用中。
+
+开启全栈：
+
+```toml
+[dependencies]
+dioxus = { version = "0.6.0", features = ["fullstack"] }
+```
+
+添加server feature，移除默认的web target。
+
+```toml
+[features]
+default = [] # <----- remove the default web target
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+server = ["dioxus/server"] # <----- add this additional target
+```
+
+运行命令也修改为：`dx serve --platform web`。
+
+server function是async的带`#[server]`的函数，返回`Result<(), ServerFnError>`。
+
